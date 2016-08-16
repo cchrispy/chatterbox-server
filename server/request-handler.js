@@ -16,7 +16,7 @@ var url = require('url');
 var path = require('path');
 var _ = require('underscore');
 
-var messages = [];
+var messages = [];  //Holds the messages that have been recieved so far.
 
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
@@ -33,8 +33,6 @@ var requestHandler = function(request, response) {
   // Adding more logging to your server can be an easy way to get passive
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
-
-  // console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
   // See the note below about CORS headers.
 
@@ -61,11 +59,11 @@ var requestHandler = function(request, response) {
   var statusCode = 400; //The outgoing statusCode
 
   var responseBody = {
-    headers: request.headers,
-    url: request.url,
-    method: request.method,
+    // headers: request.headers,
+    // url: request.url,
+    // method: request.method,
     dataType: 'json',
-    results: ['foo', 'bar']
+    results: []
   };
 
   var validURLs = ['/send', '/log', '/classes/messages'];
@@ -85,46 +83,11 @@ var requestHandler = function(request, response) {
     });
   }
 
-
   response.writeHead(statusCode, headers);
-  // response.write(JSON.stringify(responseBody));
   response.end(JSON.stringify(responseBody));
-  
-  // if (request.url !== '/send' && request.url !== '/log' && request.url !== '/classes/messages') {
-
-  // } else 
-  // if (request.method === 'GET') {
-
-  //   statusCode = 200;
-
-  // } else if (request.method === 'POST') {
-
-
-
-  //   
-
-  //   request.on('end', function () {
-  //     console.log(JSON.parse(chunkStr));
-  //   });
-
-  //   statusCode = 201;
-
-  // }
-
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  // *************************
-  // response.writeHead(statusCode, headers);
-  // *************************
-
-
-  //Parse the URL:
-  var parsedUrl = url.parse(request.url, true);
-
-  // *************************
-  // response.write(JSON.stringify(responseBody));
-  // *************************
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -133,10 +96,6 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  // *************************
-  // response.end();
-  // *************************
-
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
