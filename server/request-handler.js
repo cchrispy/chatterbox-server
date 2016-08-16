@@ -16,7 +16,9 @@ var url = require('url');
 var path = require('path');
 var _ = require('underscore');
 
-var messages = [];  //Holds the messages that have been recieved so far.
+var data = {'/send': {results: [], url: '____', allowed: []},
+            '/log': {results: [], url: '___', allowed: []},
+            '/classes/messages': {results: [], url: '___', allowed: []}};
 
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
@@ -48,7 +50,7 @@ var requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'application/javascript';
+  headers['Content-Type'] = 'application/json';
 
   // filePath
   var filePath = '.' + request.url;
@@ -58,20 +60,11 @@ var requestHandler = function(request, response) {
 
   var statusCode = 400; //The outgoing statusCode
 
-  var responseBody = {
-    // headers: request.headers,
-    // url: request.url,
-    // method: request.method,
-    dataType: 'json',
-    results: []
-  };
-
   var validURLs = ['/send', '/log', '/classes/messages'];
-  if (validURLs.indexOf(request.url) === -1) {
+  if (!(request.url in data)) {
     statusCode = 404;
   } else if (request.method === 'GET') {
     statusCode = 200;
-    responseBody.results = messages;
   } else if (request.method === 'POST') {
     statusCode = 201;
     var chunkStr = '';
@@ -79,12 +72,12 @@ var requestHandler = function(request, response) {
       chunkStr += chunk;
     });
     request.on('end', function () {
-      messages.push(JSON.parse(chunkStr));
+      data[request.url].results.push(JSON.parse(chunkStr));
     });
   }
 
   response.writeHead(statusCode, headers);
-  response.end(JSON.stringify(responseBody));
+  response.end(JSON.stringify(data[request.url]));
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
@@ -113,9 +106,6 @@ var defaultCorsHeaders = {
   'access-control-allow-headers': 'content-type, accept',
   'access-control-max-age': 10 // Seconds.
 };
-
-
-
 
 exports.requestHandler = requestHandler;
 exports.defaultCorsHeaders = defaultCorsHeaders;
