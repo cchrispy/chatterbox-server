@@ -28,7 +28,7 @@ var app = {
     app.fetch();
 
     // poll for new messages
-    setInterval(app.fetch, 3000);
+    setInterval(app.fetch, 30000);
 
   },
 
@@ -36,9 +36,9 @@ var app = {
     $.ajax({
       url: app.server + 'classes/messages',
       type: 'GET',
-      // data: {
-      //   order: '-createdAt'
-      // },
+      data: {
+        order: '-createdAt'
+      },
       success: function(data) {
         if (!data.results || !data.results.length) { return; }
 

@@ -11,14 +11,12 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
-var http = require ('http');
 var url = require('url');
-var path = require('path');
-var _ = require('underscore');
 
-var data = {'/send': {results: [], url: '____', allowed: []},
-            '/log': {results: [], url: '___', allowed: []},
-            '/classes/messages': {results: [], url: '___', allowed: []}};
+var data = {results: [],
+            allow: ['GET', 'POST', 'OPTIONS'],
+          };
+var id = 0;
 
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
@@ -36,13 +34,15 @@ var requestHandler = function(request, response) {
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
 
-  // See the note below about CORS headers.
+  // console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
-  // var headers = defaultCorsHeaders;
+  // The outgoing status.
+  var statusCode = 400;
+  // See the note below about CORS headers.
   var headers = {
     'access-control-allow-origin': '*',
     'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'access-control-allow-headers': 'content-type, accept',
+    'access-control-allow-headers': 'content-type, accept, X-Parse-Application-Id, X-Parse-REST-API-Key',
     'access-control-max-age': 10 // Seconds.
   };
 
@@ -52,35 +52,97 @@ var requestHandler = function(request, response) {
   // other than plain text, like JSON or HTML.
   headers['Content-Type'] = 'application/json';
 
-  // filePath
-  var filePath = '.' + request.url;
-  if (filePath === './') {
-    filePath = './index.html';
+  var method = request.method;
+  // var url = request.url;
+  // var headers = request.headers;
+
+  var parsedURL = url.parse(request.url);
+  // console.log(parsedURL);
+
+  if (parsedURL.pathname === '/classes/messages') {
+    if (method === 'GET') {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(data));
+      console.log('GET REQUEST: ', data);
+    }
+    if (method === 'POST') {
+      body = '';
+      request.on('data', function(chunk) {
+        body += chunk;
+      });
+      request.on('end', function() {
+        if (body.length) {
+          body = JSON.parse(body);
+          body.objectId = id;
+          id++;
+          body.createdAt = new Date();
+          data.results.push(body);
+        }
+        console.log('POST REQUEST: ', data);
+        response.writeHead(201, headers);
+        response.end(JSON.stringify(data));
+      });
+    }
+    if (method === 'OPTIONS') {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(data.options));
+    }
+  } else if (parsedURL.pathname === '/send') {
+    if (method === 'GET') {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(data));
+      console.log('GET REQUEST: ', data);
+    }
+    if (method === 'POST') {
+      body = '';
+      request.on('data', function(chunk) {
+        body += chunk;
+      });
+      request.on('end', function() {
+        if (body.length) {
+          data.results.push(JSON.parse(body));
+        }
+        response.writeHead(201, headers);
+        response.end(JSON.stringify(data));
+      });
+    }
+    if (method === 'OPTIONS') {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(data.options));
+    }
+  } else if (parsedURL.pathname === '/log') {
+    if (method === 'GET') {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(data));
+      console.log('GET REQUEST: ', data);
+    }
+    if (method === 'POST') {
+      body = '';
+      request.on('data', function(chunk) {
+        body += chunk;
+      }).on('end', function() {
+        if (body.length) {
+          data.results.push(JSON.parse(body));
+        }
+        response.writeHead(201, headers);
+        response.end(JSON.stringify(data));
+      });
+    }
+    if (method === 'OPTIONS') {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(data.options));
+    }
+  } else {
+    response.writeHead(404, headers);
+    response.end(JSON.stringify(data));
   }
 
-  var statusCode = 400; //The outgoing statusCode
-
-  var validURLs = ['/send', '/log', '/classes/messages'];
-  if (!(request.url in data)) {
-    statusCode = 404;
-  } else if (request.method === 'GET') {
-    statusCode = 200;
-  } else if (request.method === 'POST') {
-    statusCode = 201;
-    var chunkStr = '';
-    request.on('data', function (chunk) {
-      chunkStr += chunk;
-    });
-    request.on('end', function () {
-      data[request.url].results.push(JSON.parse(chunkStr));
-    });
-  }
-
-  response.writeHead(statusCode, headers);
-  response.end(JSON.stringify(data[request.url]));
+  // response.writeHead(statusCode, headers);
+  // response.end(JSON.stringify(data[url]));
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
+  // response.writeHead(statusCode, headers);
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -89,6 +151,7 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
+  // response.end('Ended.');
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
@@ -107,5 +170,4 @@ var defaultCorsHeaders = {
   'access-control-max-age': 10 // Seconds.
 };
 
-exports.requestHandler = requestHandler;
-exports.defaultCorsHeaders = defaultCorsHeaders;
+module.exports.requestHandler = requestHandler;
