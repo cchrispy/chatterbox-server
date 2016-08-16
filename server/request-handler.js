@@ -14,6 +14,9 @@ this file and include it in basic-server.js so that it actually works.
 var http = require ('http');
 var url = require('url');
 var path = require('path');
+var _ = require('underscore');
+
+var messages = [];
 
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
@@ -55,68 +58,73 @@ var requestHandler = function(request, response) {
     filePath = './index.html';
   }
 
+  var statusCode = 400; //The outgoing statusCode
 
+  var responseBody = {
+    headers: request.headers,
+    url: request.url,
+    method: request.method,
+    dataType: 'json',
+    results: ['foo', 'bar']
+  };
 
-  var responseBody;
-  var statusCode = 404; //The outgoing statusCode
-  if (request.url !== '/send' && request.url !== '/log' && request.url !== '/classes/messages') {
-    responseBody = {
-      headers: request.headers,
-      url: request.url,
-      method: request.method,
-      dataType: 'json',
-      results: ['foo', 'bar']
-    };  
+  var validURLs = ['/send', '/log', '/classes/messages'];
+  if (validURLs.indexOf(request.url) === -1) {
+    statusCode = 404;
   } else if (request.method === 'GET') {
-    responseBody = {
-      headers: request.headers,
-      url: request.url,
-      method: request.method,
-      dataType: 'json',
-      results: ['foo', 'bar']
-    };
-
     statusCode = 200;
+    responseBody.results = messages;
   } else if (request.method === 'POST') {
+    statusCode = 201;
     var chunkStr = '';
     request.on('data', function (chunk) {
       chunkStr += chunk;
     });
-
-    responseBody = {
-      headers: request.headers,
-      url: request.url,
-      method: request.method,
-      dataType: 'json',
-      data: [chunkStr]
-    };
-
     request.on('end', function () {
-      console.log(chunkStr);
+      messages.push(JSON.parse(chunkStr));
     });
-
-    statusCode = 201;
-  } else {
-    responseBody = {
-      headers: request.headers,
-      url: request.url,
-      method: request.method,
-      dataType: 'json',
-      results: ['foo', 'bar']
-    };   
   }
 
+
+  response.writeHead(statusCode, headers);
+  // response.write(JSON.stringify(responseBody));
+  response.end(JSON.stringify(responseBody));
+  
+  // if (request.url !== '/send' && request.url !== '/log' && request.url !== '/classes/messages') {
+
+  // } else 
+  // if (request.method === 'GET') {
+
+  //   statusCode = 200;
+
+  // } else if (request.method === 'POST') {
+
+
+
+  //   
+
+  //   request.on('end', function () {
+  //     console.log(JSON.parse(chunkStr));
+  //   });
+
+  //   statusCode = 201;
+
+  // }
 
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  response.writeHead(statusCode, headers);
-  
+  // *************************
+  // response.writeHead(statusCode, headers);
+  // *************************
+
 
   //Parse the URL:
   var parsedUrl = url.parse(request.url, true);
 
-  response.write(JSON.stringify(responseBody));
+  // *************************
+  // response.write(JSON.stringify(responseBody));
+  // *************************
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -125,7 +133,10 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.end();
+  // *************************
+  // response.end();
+  // *************************
+
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
