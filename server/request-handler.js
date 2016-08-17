@@ -12,13 +12,81 @@ this file and include it in basic-server.js so that it actually works.
 
 **************************************************************/
 var url = require('url');
+var fs = require('fs');
+var path = require('path');
 
-var data = {results: [],
-            allow: ['GET', 'POST', 'OPTIONS'],
+
+var data = {body: {results: []},
+            options: ['GET', 'POST', 'OPTIONS'],
           };
 var id = 0;
 
 var requestHandler = function(request, response) {
+
+  var filePath = '.client/client' + request.url;
+  if (request.url === '/') {
+    filePath = '.client/client/index.html';
+  }
+
+  var extname = path.extname(filePath);
+  var contentType = 'text/html';
+  if (extname === '.js') {
+    contentType = 'application/json';
+  } else if (extname === '.css') {
+    contentTYpe = 'text/css';
+  }
+
+  // console.log('REQUEST URL: ',request.url);
+  // console.log(filePath);
+  // console.log('CONTENT TYPE: ', contentType);
+
+  var read = function(cb, file) {
+    // console.log('IN READ: ', file);
+    fs.readFile(file, function(error, content) {
+      if (error) {
+        console.log(error);
+        response.writeHead(500);
+        response.write('ERROR CODE: 500');
+        response.end();
+      } else {
+        cb(content);
+        // response.writeHead(200, {'Content-Type': contentType});
+        // response.write(content);
+        // console.log(content);
+        // response.end();
+      }
+    });
+  };
+  readIt = function(content) {
+    // console.log('REQUEST URL: ', request.url);
+    // console.log(filePath);
+    // console.log('CONTENT TYPE: ', contentType);
+    response.writeHead(200, {'Content-Type': contentType});
+    response.write(content);
+    // response.end();
+  };
+
+  var readDir = function(cb) {
+    fs.readdir('./client/client', function (err, files) {
+      if (err) {
+        // console.log(err);
+      }
+      files.map(function (file) {
+        return path.join('./client/client', file);
+      }).filter(function (file) {
+        return fs.statSync(file).isFile();
+      }).forEach(function (file) {
+        // console.log(file, path.extname(file));
+        cb(readIt, file);
+        // response.end();
+      });
+    });
+  };
+  readDir(read);
+  console.log('hello');
+  setTimeout(function() {
+    response.end();
+  }, 5000)
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -59,83 +127,92 @@ var requestHandler = function(request, response) {
   var parsedURL = url.parse(request.url);
   // console.log(parsedURL);
 
-  if (parsedURL.pathname === '/classes/messages') {
-    if (method === 'GET') {
-      response.writeHead(200, headers);
-      response.end(JSON.stringify(data));
-      console.log('GET REQUEST: ', data);
-    }
-    if (method === 'POST') {
-      body = '';
-      request.on('data', function(chunk) {
-        body += chunk;
-      });
-      request.on('end', function() {
-        if (body.length) {
-          body = JSON.parse(body);
-          body.objectId = id;
-          id++;
-          body.createdAt = new Date();
-          data.results.push(body);
-        }
-        console.log('POST REQUEST: ', data);
-        response.writeHead(201, headers);
-        response.end(JSON.stringify(data));
-      });
-    }
-    if (method === 'OPTIONS') {
-      response.writeHead(200, headers);
-      response.end(JSON.stringify(data.options));
-    }
-  } else if (parsedURL.pathname === '/send') {
-    if (method === 'GET') {
-      response.writeHead(200, headers);
-      response.end(JSON.stringify(data));
-      console.log('GET REQUEST: ', data);
-    }
-    if (method === 'POST') {
-      body = '';
-      request.on('data', function(chunk) {
-        body += chunk;
-      });
-      request.on('end', function() {
-        if (body.length) {
-          data.results.push(JSON.parse(body));
-        }
-        response.writeHead(201, headers);
-        response.end(JSON.stringify(data));
-      });
-    }
-    if (method === 'OPTIONS') {
-      response.writeHead(200, headers);
-      response.end(JSON.stringify(data.options));
-    }
-  } else if (parsedURL.pathname === '/log') {
-    if (method === 'GET') {
-      response.writeHead(200, headers);
-      response.end(JSON.stringify(data));
-      console.log('GET REQUEST: ', data);
-    }
-    if (method === 'POST') {
-      body = '';
-      request.on('data', function(chunk) {
-        body += chunk;
-      }).on('end', function() {
-        if (body.length) {
-          data.results.push(JSON.parse(body));
-        }
-        response.writeHead(201, headers);
-        response.end(JSON.stringify(data));
-      });
-    }
-    if (method === 'OPTIONS') {
-      response.writeHead(200, headers);
-      response.end(JSON.stringify(data.options));
-    }
-  } else {
-    response.writeHead(404, headers);
-    response.end(JSON.stringify(data));
-  }
+  // if (parsedURL.pathname === '/classes/messages') {
+  //   if (method === 'GET') {
+  //     if (parsedURL.query.split('=')[0] === 'roomSwitch') {
+  //       var room = parsedURL.query.split('=')[1];
+  //       var roomData = {results: data.body.results.filter(function(item) {
+  //         return item.roomname === room;
+  //       })};
+  //       console.log(roomData);
+  //       response.writeHead(200, headers);
+  //       response.end(JSON.stringify(roomData));
+  //     }
+  //     response.writeHead(200, headers);
+  //     response.end(JSON.stringify(data.body));
+  //     // console.log('GET REQUEST: ', data.body);
+  //   }
+  //   if (method === 'POST') {
+  //     body = '';
+  //     request.on('data', function(chunk) {
+  //       body += chunk;
+  //     });
+  //     request.on('end', function() {
+  //       if (body.length) {
+  //         body = JSON.parse(body);
+  //         body.objectId = id;
+  //         id++;
+  //         body.createdAt = new Date();
+  //         data.body.results.push(body);
+  //       }
+  //       // console.log('POST REQUEST: ', data.body);
+  //       response.writeHead(201, headers);
+  //       response.end(JSON.stringify(data.body));
+  //     });
+  //   }
+  //   if (method === 'OPTIONS') {
+  //     response.writeHead(200, headers);
+  //     response.end(JSON.stringify(data.options));
+  //   }
+  // } else if (parsedURL.pathname === '/send') {
+  //   if (method === 'GET') {
+  //     response.writeHead(200, headers);
+  //     response.end(JSON.stringify(data.body));
+  //     // console.log('GET REQUEST: ', data.body);
+  //   }
+  //   if (method === 'POST') {
+  //     body = '';
+  //     request.on('data', function(chunk) {
+  //       body += chunk;
+  //     });
+  //     request.on('end', function() {
+  //       if (body.length) {
+  //         data.body.results.push(JSON.parse(body));
+  //       }
+  //       response.writeHead(201, headers);
+  //       response.end(JSON.stringify(data.body));
+  //     });
+  //   }
+  //   if (method === 'OPTIONS') {
+  //     response.writeHead(200, headers);
+  //     response.end(JSON.stringify(data.options));
+  //   }
+  // } else if (parsedURL.pathname === '/log') {
+  //   if (method === 'GET') {
+  //     response.writeHead(200, headers);
+  //     response.end(JSON.stringify(data.body));
+  //     // console.log('GET REQUEST: ', data.body);
+  //   }
+  //   if (method === 'POST') {
+  //     body = '';
+  //     request.on('data', function(chunk) {
+  //       body += chunk;
+  //     }).on('end', function() {
+  //       if (body.length) {
+  //         data.body.results.push(JSON.parse(body));
+  //       }
+  //       response.writeHead(201, headers);
+  //       response.end(JSON.stringify(data.body));
+  //     });
+  //   }
+  //   if (method === 'OPTIONS') {
+  //     response.writeHead(200, headers);
+  //     response.end(JSON.stringify(data.options));
+  //   }
+  // } else {
+  //   response.writeHead(404, headers);
+  //   response.end(JSON.stringify(data.body));
+  // }
 
   // response.writeHead(statusCode, headers);
   // response.end(JSON.stringify(data[url]));

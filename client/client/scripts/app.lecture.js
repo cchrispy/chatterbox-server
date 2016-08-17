@@ -28,7 +28,7 @@ var app = {
     app.fetch();
 
     // poll for new messages
-    setInterval(app.fetch, 30000);
+    setInterval(app.fetch, 10000);
 
   },
 
@@ -167,6 +167,23 @@ var app = {
       // existing room
       app.roomname = app.$roomSelect.val();
     }
+
+    /********************************/
+    $.ajax({ // switching room
+      type: 'GET',
+      url: app.server + 'classes/messages',
+      data: {
+        roomSwitch: app.roomname
+      },
+      success: function(data) {
+        console.log('room switch!');
+      },
+      error: function(error) {
+        console.log('error in roomswitch: ', error);
+      }
+    });
+    /********************************/
+
 
     app.renderMessages(app.messages);
   },
